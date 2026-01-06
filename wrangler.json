@@ -1,0 +1,16 @@
+{
+  "name": "blog-admin",
+  "main": "src/worker.ts",
+  "compatibility_date": "2024-12-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./static"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "blog-db",
+      "database_id": "0729b997-b111-46de-ad0a-147184217532"
+    }
+  ]
+}

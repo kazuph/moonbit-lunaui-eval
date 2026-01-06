@@ -1,0 +1,57 @@
+{
+  "name": "blog-admin",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "generate": "sol generate && node scripts/patch-types.js",
+    "build:moon": "moon build --target js",
+    "build:patch": "node scripts/patch-for-cloudflare.js target/js/release/build/__gen__/server/server.js",
+    "build:client": "node scripts/bundle-client.js",
+    "build": "npm run generate && npm run build:moon && npm run build:patch && npm run build:client",
+    "dev": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
+    "db:create": "wrangler d1 create blog-db",
+    "db:init": "wrangler d1 execute blog-db --local --file=migrations/0001_create_posts.sql",
+    "db:migrate": "wrangler d1 migrations apply blog-db --local",
+    "db:migrate:prod": "wrangler d1 migrations apply blog-db",
+    "eslint": "eslint \"**/*.{js,cjs,ts,mjs,jsx,tsx}\"",
+    "lint": "npm run eslint",
+    "lintfix": "npm run eslint -- --fix",
+    "postlint": "template-oss-check",
+    "template-oss-apply": "template-oss-apply --force",
+    "snap": "tap",
+    "test": "tap",
+    "posttest": "npm run lint",
+    "test:e2e": "playwright test --config=tests/e2e/playwright.config.ts",
+    "test:e2e:ui": "playwright test --config=tests/e2e/playwright.config.ts --ui",
+    "test:e2e:headed": "playwright test --config=tests/e2e/playwright.config.ts --headed",
+    "test:e2e:debug": "playwright test --config=tests/e2e/playwright.config.ts --debug"
+  },
+  "dependencies": {
+    "hono": "^4.11.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260103.0",
+    "@luna_ui/sol": "^0.4.0",
+    "@playwright/test": "^1.57.0",
+    "dotenv": "^17.2.3",
+    "esbuild": "^0.27.2",
+    "playwright": "^1.57.0",
+    "wrangler": "^3.114.16"
+  },
+  "author": "GitHub Inc.",
+  "files": [
+    "bin/",
+    "lib/"
+  ],
+  "templateOSS": {
+    "//@npmcli/template-oss": "This file is partially managed by @npmcli/template-oss. Edits may be overwritten.",
+    "version": "4.25.1"
+  },
+  "tap": {
+    "nyc-arg": [
+      "--exclude",
+      "tap-snapshots/**"
+    ]
+  }
+}

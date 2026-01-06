@@ -1,0 +1,83 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "kazuph/blog_admin/server"
+
+import(
+  "mizchi/js/core"
+  "mizchi/luna/luna"
+  "mizchi/luna/sol/action"
+  "mizchi/luna/sol/router"
+)
+
+// Values
+pub fn action_registry() -> @action.ActionRegistry
+
+pub fn array_get(@core.Any, Int) -> @core.Any
+
+pub fn array_len(@core.Any) -> Int
+
+pub fn config() -> @router.RouterConfig
+
+pub fn db_create_post(String, String, String, String, String, String) -> @core.Promise[@core.Any]
+
+pub fn db_delete_post(String) -> @core.Promise[@core.Any]
+
+pub fn db_get_all_posts() -> @core.Promise[@core.Any]
+
+pub fn db_get_post_by_id(String) -> @core.Promise[@core.Any]
+
+pub fn db_get_post_by_slug(String) -> @core.Promise[@core.Any]
+
+pub fn db_get_published_posts() -> @core.Promise[@core.Any]
+
+pub fn db_update_post(String, String, String, String, String, String, String) -> @core.Promise[@core.Any]
+
+pub fn get_int(@core.Any, String) -> Int
+
+pub fn get_str(@core.Any, String) -> String
+
+pub fn get_timestamp() -> String
+
+pub fn is_null(@core.Any) -> Bool
+
+pub fn option(value? : String, selected? : Bool, id? : String, class? : String, style? : String, attrs? : Array[(String, @luna.Attr[Unit])], Array[@luna.Node[Unit]]) -> @luna.Node[Unit]
+
+pub fn post_from_js(@core.Any) -> Post
+
+pub fn routes() -> Array[@router.SolRoutes]
+
+pub fn select(id? : String, name? : String, class? : String, style? : String, attrs? : Array[(String, @luna.Attr[Unit])], Array[@luna.Node[Unit]]) -> @luna.Node[Unit]
+
+pub fn table(id? : String, class? : String, style? : String, attrs? : Array[(String, @luna.Attr[Unit])], Array[@luna.Node[Unit]]) -> @luna.Node[Unit]
+
+pub fn tbody(id? : String, class? : String, style? : String, attrs? : Array[(String, @luna.Attr[Unit])], Array[@luna.Node[Unit]]) -> @luna.Node[Unit]
+
+pub fn td(id? : String, class? : String, style? : String, attrs? : Array[(String, @luna.Attr[Unit])], Array[@luna.Node[Unit]]) -> @luna.Node[Unit]
+
+pub fn textarea(id? : String, name? : String, placeholder? : String, required? : Bool, class? : String, style? : String, attrs? : Array[(String, @luna.Attr[Unit])], Array[@luna.Node[Unit]]) -> @luna.Node[Unit]
+
+pub fn th(id? : String, class? : String, style? : String, attrs? : Array[(String, @luna.Attr[Unit])], Array[@luna.Node[Unit]]) -> @luna.Node[Unit]
+
+pub fn thead(id? : String, class? : String, style? : String, attrs? : Array[(String, @luna.Attr[Unit])], Array[@luna.Node[Unit]]) -> @luna.Node[Unit]
+
+pub fn tr(id? : String, class? : String, style? : String, attrs? : Array[(String, @luna.Attr[Unit])], Array[@luna.Node[Unit]]) -> @luna.Node[Unit]
+
+// Errors
+
+// Types and methods
+pub struct Post {
+  id : String
+  title : String
+  slug : String
+  content : String
+  content_html : String
+  excerpt : String
+  status : String
+  published_at : String
+  created_at : String
+  updated_at : String
+}
+
+// Type aliases
+
+// Traits
+

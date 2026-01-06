@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+target/
+.sol/
+
+# Environment files (contains secrets)
+.env
+.dev.vars
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Wrangler
+.wrangler/
+
+# Test artifacts (keep reports, ignore temp files)
+.artifacts/*/test-results/
+.artifacts/*/traces/
+
+# MoonBit
+.mooncakes/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Lock files (using pnpm)
+package-lock.json
+yarn.lock
+bun.lock

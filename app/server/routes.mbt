@@ -668,8 +668,35 @@ const ROOT : String =
   #|      gap: 16px;
   #|      align-items: stretch;
   #|    }
-  #|    .editor-container > textarea { order: 2; }
   #|    .editor-container > .preview { order: 1; }
+  #|    .editor-container > .editor-pane { order: 2; }
+  #|    .editor-pane {
+  #|      display: flex;
+  #|      flex-direction: column;
+  #|    }
+  #|    .editor-pane label {
+  #|      font-weight: 600;
+  #|      margin-bottom: 8px;
+  #|      font-size: 0.9rem;
+  #|    }
+  #|    .editor-pane textarea {
+  #|      flex: 1;
+  #|      min-height: 500px;
+  #|      width: 100%;
+  #|      padding: 12px 16px;
+  #|      font-size: 1rem;
+  #|      font-family: var(--font-mono);
+  #|      border: 1px solid var(--color-border);
+  #|      border-radius: var(--radius-sm);
+  #|      background: var(--color-surface);
+  #|      line-height: 1.6;
+  #|      resize: none;
+  #|    }
+  #|    .editor-pane textarea:focus {
+  #|      outline: none;
+  #|      border-color: var(--color-accent);
+  #|      box-shadow: 0 0 0 3px rgba(74, 124, 89, 0.1);
+  #|    }
   #|    .preview {
   #|      background: var(--color-surface);
   #|      border: 1px solid var(--color-border-light);
@@ -936,6 +963,8 @@ extern "js" fn parse_form_urlencoded(s : String) -> @core.Any =
 pub fn action_registry() -> @action.ActionRegistry {
   @action.ActionRegistry::new(allowed_origins=[
     "http://localhost:3000", "http://localhost:8787",
+    "https://blog-admin-kazu-san.workers.dev",
+    "https://blog-admin.kazu-san.workers.dev",
   ]).register(
     @action.ActionDef::new("create-post", create_post_action).with_require_json(
       false,

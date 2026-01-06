@@ -211,7 +211,7 @@ pub fn markdown_editor(props : MarkdownEditorProps) -> DomNode {
           ),
         ]),
         // Editor and preview side by side
-        div(class="editor-preview-container", [
+        div(class="editor-container", [
           // Preview pane (left)
           div(
             class="preview",

@@ -414,10 +414,15 @@ const ROOT : String =
   #|<head>
   #|  <meta charset="UTF-8">
   #|  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  #|  <meta name="description" content="MoonBit + Luna UI で構築されたブログ管理システム">
   #|  <title>__LUNA_TITLE__</title>
+  #|  <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+  #|  <link rel="dns-prefetch" href="https://fonts.gstatic.com">
   #|  <link rel="preconnect" href="https://fonts.googleapis.com">
   #|  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  #|  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+  #|  <link rel="preload" href="/loader.js" as="script">
+  #|  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  #|  <noscript><link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono&display=swap" rel="stylesheet"></noscript>
   #|  <style>
   #|    :root {
   #|      --color-bg: #FFFCF7;
@@ -828,8 +833,9 @@ const ROOT : String =
   #|  __LUNA_HEAD__
   #|</head>
   #|<body>
-  #|  <div id="__sol__">__LUNA_MAIN__</div>
+  #|  <main role="main" id="__sol__">__LUNA_MAIN__</main>
   #|  <script src="/loader.js"></script>
+  #|  <script>if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js')</script>
   #|</body>
   #|</html>
 

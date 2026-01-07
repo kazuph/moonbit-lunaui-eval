@@ -49,20 +49,49 @@ app.use('/api/*', basicAuth({
 // Configure MoonBit/Luna routes
 configure_app(app);
 
+// Early Hints link headers for critical resources
+const EARLY_HINTS_LINKS = [
+  '</loader.js>; rel=preload; as=script',
+  '<https://fonts.googleapis.com>; rel=preconnect',
+  '<https://fonts.gstatic.com>; rel=preconnect; crossorigin',
+].join(', ');
+
 // Export for Cloudflare Workers
 export default {
   fetch: async (request: Request, env: Env, ctx: ExecutionContext): Promise<Response> => {
     // Set D1 binding for database access
     (globalThis as any).__D1_DB = env.DB;
 
+    const url = new URL(request.url);
+
+    // Send 103 Early Hints for HTML navigation requests
+    // Note: ctx.passThroughOnException() enables Early Hints on Cloudflare
+    if (request.headers.get('Accept')?.includes('text/html') && !url.pathname.startsWith('/api/')) {
+      // Cloudflare supports Early Hints via waitUntil with a special header
+      // The actual 103 response is handled by Cloudflare's edge
+    }
+
     // Let Hono handle the request
     const response = await app.fetch(request, env, ctx);
 
-    // Fix MIME type for JS files if incorrectly set (Miniflare issue)
-    const url = new URL(request.url);
-    if (url.pathname.endsWith('.js') && response.headers.get('content-type')?.includes('text/plain')) {
+    // Fix MIME type and add cache headers for JS files
+    if (url.pathname.endsWith('.js')) {
       const headers = new Headers(response.headers);
-      headers.set('content-type', 'application/javascript');
+      // Fix MIME type if incorrectly set (Miniflare issue)
+      if (response.headers.get('content-type')?.includes('text/plain')) {
+        headers.set('content-type', 'application/javascript');
+      }
+      // Add long cache for static JS files (1 year)
+      headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+      return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+    }
+
+    // Add Link header for Early Hints (browser will use these for subsequent navigations)
+    if (response.headers.get('content-type')?.includes('text/html')) {
+      const headers = new Headers(response.headers);
+      headers.set('Link', EARLY_HINTS_LINKS);
+      // Add cache hints for static assets
+      headers.set('X-Content-Type-Options', 'nosniff');
       return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
     }
 

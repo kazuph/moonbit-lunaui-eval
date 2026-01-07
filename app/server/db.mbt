@@ -87,30 +87,63 @@ pub extern "js" fn db_delete_post(id : String) -> @core.Promise[@core.Any] =
   #| }
 
 // =============================================================================
-// Data Access Helpers
+// Data Access Helpers - MoonBit Native Implementation
 // =============================================================================
 
-///| Extract string field from JS object
-pub extern "js" fn get_str(obj : @core.Any, field : String) -> String =
-  #| (obj, field) => obj && obj[field] != null ? String(obj[field]) : ""
+///| Extract string field from JS object (MoonBit native)
+pub fn get_str(obj : @core.Any, field : String) -> String {
+  // Guard against null/undefined obj
+  if @core.is_nullish(obj) {
+    return ""
+  }
+  let val = obj._get(field)
+  if @core.is_nullish(val) {
+    ""
+  } else {
+    val.to_string()
+  }
+}
 
-///| Extract int field from JS object
-pub extern "js" fn get_int(obj : @core.Any, field : String) -> Int =
-  #| (obj, field) => obj && obj[field] != null ? Number(obj[field]) : 0
+///| Extract int field from JS object (MoonBit native)
+pub fn get_int(obj : @core.Any, field : String) -> Int {
+  // Guard against null/undefined obj
+  if @core.is_nullish(obj) {
+    return 0
+  }
+  let val = obj._get(field)
+  if @core.is_nullish(val) {
+    0
+  } else {
+    // Use JS Number() via cast
+    val.cast()
+  }
+}
 
-///| Check if JS value is null/undefined
-pub extern "js" fn is_null(obj : @core.Any) -> Bool =
-  #| (obj) => obj == null
+///| Check if JS value is null/undefined (MoonBit native)
+pub fn is_null(obj : @core.Any) -> Bool {
+  @core.is_nullish(obj)
+}
 
-///| Get array length
-pub extern "js" fn array_len(arr : @core.Any) -> Int =
-  #| (arr) => Array.isArray(arr) ? arr.length : 0
+///| Get array length (MoonBit native)
+pub fn array_len(arr : @core.Any) -> Int {
+  if @core.is_nullish(arr) {
+    0
+  } else {
+    let len = arr._get("length")
+    if @core.is_nullish(len) {
+      0
+    } else {
+      len.cast()
+    }
+  }
+}
 
-///| Get array element
-pub extern "js" fn array_get(arr : @core.Any, idx : Int) -> @core.Any =
-  #| (arr, idx) => arr[idx]
+///| Get array element (MoonBit native)
+pub fn array_get(arr : @core.Any, idx : Int) -> @core.Any {
+  arr._get_by_index(idx)
+}
 
-///| Get current timestamp
+///| Get current timestamp (minimal FFI - Date API is JS-only)
 pub extern "js" fn get_timestamp() -> String =
   #| () => new Date().toISOString()
 

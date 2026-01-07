@@ -17,7 +17,7 @@ pub fn routes() -> Array[@router.SolRoutes] {
           @router.SolRoutes::Page(
             path="/",
             handler=@router.PageHandler(home_page),
-            title="Blog",
+            title="ブログ",
             meta=[],
             revalidate=None,
             cache=None,
@@ -26,7 +26,7 @@ pub fn routes() -> Array[@router.SolRoutes] {
           @router.SolRoutes::Page(
             path="/posts/:slug",
             handler=@router.PageHandler(post_detail),
-            title="Blog Post",
+            title="ブログ記事",
             meta=[],
             revalidate=None,
             cache=None,
@@ -40,7 +40,7 @@ pub fn routes() -> Array[@router.SolRoutes] {
               @router.SolRoutes::Page(
                 path="/",
                 handler=@router.PageHandler(admin_posts),
-                title="Manage Posts",
+                title="記事管理",
                 meta=[],
                 revalidate=None,
                 cache=None,
@@ -48,7 +48,7 @@ pub fn routes() -> Array[@router.SolRoutes] {
               @router.SolRoutes::Page(
                 path="/posts/new",
                 handler=@router.PageHandler(admin_new_post),
-                title="New Post",
+                title="新規記事",
                 meta=[],
                 revalidate=None,
                 cache=None,
@@ -56,7 +56,7 @@ pub fn routes() -> Array[@router.SolRoutes] {
               @router.SolRoutes::Page(
                 path="/posts/:id/edit",
                 handler=@router.PageHandler(admin_edit_post),
-                title="Edit Post",
+                title="記事編集",
                 meta=[],
                 revalidate=None,
                 cache=None,
@@ -99,9 +99,9 @@ fn root_layout(
       ]),
       div(class="container", [
         nav(class="main-nav", [
-          a(href="/", [strong([text("Blog")])]),
+          a(href="/", [strong([text("ブログ")])]),
           span([text(" | ")]),
-          a(href="/admin", [text("Admin")]),
+          a(href="/admin", [text("管理")]),
         ]),
         div(class="content", [inner]),
       ]),
@@ -119,11 +119,11 @@ fn admin_layout(
     @luna.fragment([
       div(class="admin-container", [
         nav(class="admin-sidebar", [
-          h3([text("Admin")]),
+          h3([text("管理")]),
           ul([
-            li([a(href="/admin", [text("Posts")])]),
-            li([a(href="/admin/posts/new", [text("New Post")])]),
-            li([a(href="/", [text("View Blog")])]),
+            li([a(href="/admin", [text("記事一覧")])]),
+            li([a(href="/admin/posts/new", [text("新規作成")])]),
+            li([a(href="/", [text("ブログを見る")])]),
           ]),
         ]),
         div(class="admin-content", [inner]),
@@ -155,7 +155,7 @@ async fn home_page(_props : @router.PageProps) -> @server_dom.ServerNode {
           h2([a(href="/posts/" + slug, [text(title)])]),
           p([text(excerpt)]),
           p(class="meta", [
-            text("Published: " + published_at),
+            text("公開日: " + published_at),
           ]),
         ])
       )
@@ -163,11 +163,11 @@ async fn home_page(_props : @router.PageProps) -> @server_dom.ServerNode {
 
     let content = if len == 0 {
       [
-        h1([text("Blog Posts")]),
-        p([text("No posts yet. "), a(href="/admin/posts/new", [text("Create one")])]),
+        h1([text("ブログ記事")]),
+        p([text("記事がありません。"), a(href="/admin/posts/new", [text("新規作成")])]),
       ]
     } else {
-      [h1([text("Blog Posts")])] + post_items
+      [h1([text("ブログ記事")])] + post_items
     }
 
     @luna.fragment(content)
@@ -182,18 +182,18 @@ async fn post_detail(props : @router.PageProps) -> @server_dom.ServerNode {
 
     if is_null(post) {
       return @luna.fragment([
-        h1([text("Post Not Found")]),
-        p([text("The post \"" + slug + "\" was not found.")]),
-        a(href="/", [text("Back to Blog")]),
+        h1([text("記事が見つかりません")]),
+        p([text("「" + slug + "」という記事は見つかりませんでした。")]),
+        a(href="/", [text("ブログに戻る")]),
       ])
     }
 
-    let title = get_str(post, "title")
     let content_html = get_str(post, "content_html")
 
+    // Note: title H1 is included in content_html from markdown (# Title)
+    // Don't add another H1 to avoid duplicate titles
     @luna.fragment([
-      p(class="back-link", [a(href="/", [text("\u2190 Back to list")])]),
-      h1([text(title)]),
+      p(class="back-link", [a(href="/", [text("← 一覧に戻る")])]),
       div(class="post-content", [
         @luna.raw_html(content_html),
       ]),
@@ -227,25 +227,25 @@ async fn admin_posts(_props : @router.PageProps) -> @server_dom.ServerNode {
           td(class="status-" + status, [text(status)]),
           td([text(updated_at)]),
           td(class="actions", [
-            a(href="/admin/posts/" + id + "/edit", [text("Edit")]),
+            a(href="/admin/posts/" + id + "/edit", [text("編集")]),
             text(" | "),
-            a(href="/posts/" + slug, [text("View")]),
+            a(href="/posts/" + slug, [text("表示")]),
           ]),
         ])
       )
     }
 
     @luna.fragment([
-      h1([text("Manage Posts")]),
-      p([a(href="/admin/posts/new", class="btn", [text("New Post")])]),
+      h1([text("記事管理")]),
+      p([a(href="/admin/posts/new", class="btn", [text("新規作成")])]),
       table(class="posts-table", [
         thead([
           tr([
-            th([text("Title")]),
-            th([text("Slug")]),
-            th([text("Status")]),
-            th([text("Updated")]),
-            th([text("Actions")]),
+            th([text("タイトル")]),
+            th([text("スラッグ")]),
+            th([text("状態")]),
+            th([text("更新日")]),
+            th([text("操作")]),
           ]),
         ]),
         tbody(rows),
@@ -257,7 +257,7 @@ async fn admin_posts(_props : @router.PageProps) -> @server_dom.ServerNode {
 ///| New post form - uses Island Component for markdown editor
 async fn admin_new_post(_props : @router.PageProps) -> @server_dom.ServerNode {
   @server_dom.ServerNode::sync(@luna.fragment([
-    h1([text("New Post")]),
+    h1([text("新規記事")]),
     // Island Component: Markdown Editor with real-time preview and Server Action
     @server_dom.client(
       @types.markdown_editor({
@@ -268,7 +268,7 @@ async fn admin_new_post(_props : @router.PageProps) -> @server_dom.ServerNode {
         initial_slug: "",
         initial_status: "draft",
       }),
-      [div([text("Loading editor...")])],
+      [div([text("エディタを読み込み中...")])],
     ),
   ]))
 }
@@ -281,31 +281,32 @@ async fn admin_edit_post(props : @router.PageProps) -> @server_dom.ServerNode {
 
     if is_null(post) {
       return @luna.fragment([
-        h1([text("Post Not Found")]),
-        a(href="/admin", [text("Back to Admin")]),
+        h1([text("記事が見つかりません")]),
+        a(href="/admin", [text("管理に戻る")]),
       ])
     }
 
+    // Extract all post fields for the editor
+    let title = get_str(post, "title")
+    let slug = get_str(post, "slug")
     let content = get_str(post, "content")
+    let status = get_str(post, "status")
 
     @luna.fragment([
-      h1([text("Edit Post")]),
-      // Island Component: Markdown Editor with post content pre-filled
+      h1([text("記事編集")]),
+      // Island Component: Markdown Editor with post data pre-filled
+      // Note: Delete button is now inside the Island component for proper redirect handling
       @server_dom.client(
         @types.markdown_editor({
           initial_content: content,
           action_url: "/_action/update-post",
           post_id: id,
-          initial_title: "",
-          initial_slug: "",
-          initial_status: "draft",
+          initial_title: title,
+          initial_slug: slug,
+          initial_status: status,
         }),
-        [div([text("Loading editor...")])],
+        [div([text("エディタを読み込み中...")])],
       ),
-      // Delete button (separate form, server-side action)
-      form(http_method="POST", action="/api/posts/" + id + "/delete", style="margin-top: 20px;", [
-        button(attrs=[("type", @luna.attr_static("submit"))], class="btn btn-danger", [text("Delete Post")]),
-      ]),
     ])
   })
 }
@@ -316,7 +317,7 @@ async fn admin_edit_post(props : @router.PageProps) -> @server_dom.ServerNode {
 
 ///| Create a new post
 async fn api_create_post(props : @router.PageProps) -> @core.Any {
-  let body = get_form_body_promise(props).wait()
+  let body = props.ctx.req.parseBody()
   let title = get_str(body, "title")
   let slug = get_str(body, "slug")
   let content = get_str(body, "content")
@@ -328,13 +329,13 @@ async fn api_create_post(props : @router.PageProps) -> @core.Any {
   let _result = db_create_post(title, slug, content, content_html, excerpt, status).wait()
 
   // Return JSON success response with slug for client-side navigation
-  api_json_success("記事を作成しました", slug)
+  action_json_response(true, "記事を作成しました", slug)
 }
 
 ///| Update a post
 async fn api_update_post(props : @router.PageProps) -> @core.Any {
   let id = props.params.get_param("id").unwrap_or("")
-  let body = get_form_body_promise(props).wait()
+  let body = props.ctx.req.parseBody()
   let title = get_str(body, "title")
   let slug = get_str(body, "slug")
   let content = get_str(body, "content")
@@ -344,14 +345,16 @@ async fn api_update_post(props : @router.PageProps) -> @core.Any {
   let excerpt = safe_excerpt(content, 150)
 
   let _result = db_update_post(id, title, slug, content, content_html, excerpt, status).wait()
-  api_json_success("記事を更新しました", slug)
+  action_json_response(true, "記事を更新しました", slug)
 }
 
-///| Delete a post
+///| Delete a post - returns JSON success response
+///| Client will handle the redirect
 async fn api_delete_post(props : @router.PageProps) -> @core.Any {
   let id = props.params.get_param("id").unwrap_or("")
   let _result = db_delete_post(id).wait()
-  hono_redirect(props, "/admin")
+  // Return JSON success - client handles redirect
+  action_json_response(true, "記事を削除しました", "")
 }
 
 // =============================================================================
@@ -361,36 +364,29 @@ async fn api_delete_post(props : @router.PageProps) -> @core.Any {
 // Note: Basic Authentication is now handled by Hono's basicAuth middleware
 // in .sol/prod/server/main.js for better security (timingSafeEqual)
 
-///| Get form body from Hono context (async)
-extern "js" fn get_form_body_promise(props : @router.PageProps) -> @core.Promise[@core.Any] =
-  #| async (props) => {
-  #|   const ctx = props.ctx;
-  #|   if (!ctx?.req) return {};
-  #|   try {
-  #|     return await ctx.req.parseBody();
-  #|   } catch (e) {
-  #|     console.error('Error parsing form:', e);
-  #|     return {};
-  #|   }
-  #| }
+// Note: get_form_body_promise replaced with props.ctx.req.parseBody() directly
+// Note: hono_redirect replaced with props.ctx.redirect() directly
 
-///| Redirect using Response object with proper 302 status
-extern "js" fn hono_redirect(_props : @router.PageProps, url : String) -> @core.Any =
-  #| (props, url) => {
-  #|   // Create a proper HTTP 302 redirect response
-  #|   return new Response(null, {
-  #|     status: 302,
-  #|     headers: { 'Location': url }
-  #|   });
-  #| }
+// Note: api_json_success consolidated with action_json_response below
 
-///| Return JSON success response (plain object for Sol ApiHandler)
-extern "js" fn api_json_success(message : String, slug : String) -> @core.Any =
-  #| (message, slug) => ({ success: true, message, slug })
-
-///| Normalize escaped newlines from form submission
-extern "js" fn normalize_newlines(s : String) -> String =
-  #| (s) => s.replace(/\\n/g, '\n')
+///| Normalize escaped newlines from form submission - MoonBit native
+fn normalize_newlines(s : String) -> String {
+  // Replace literal "\\n" (backslash-n) with actual newline
+  let result = StringBuilder::new()
+  let chars = s.to_array()
+  let len = chars.length()
+  let mut i = 0
+  while i < len {
+    if i + 1 < len && chars[i] == '\\' && chars[i + 1] == 'n' {
+      result.write_char('\n')
+      i = i + 2
+    } else {
+      result.write_char(chars[i])
+      i = i + 1
+    }
+  }
+  result.to_string()
+}
 
 ///| Render markdown to HTML using MoonBit @markdown package
 fn render_markdown(content : String) -> String {
@@ -399,12 +395,21 @@ fn render_markdown(content : String) -> String {
   @markdown.render_html(result.document)
 }
 
-///| Safe excerpt extraction using JS slice (handles UTF-8 properly)
-extern "js" fn safe_excerpt(content : String, max_len : Int) -> String =
-  #| (content, maxLen) => {
-  #|   if (content.length <= maxLen) return content;
-  #|   return content.slice(0, maxLen) + "...";
-  #| }
+///| Safe excerpt extraction - MoonBit native
+fn safe_excerpt(content : String, max_len : Int) -> String {
+  let chars = content.to_array()
+  if chars.length() <= max_len {
+    content
+  } else {
+    // Take first max_len characters and add "..."
+    let result = StringBuilder::new()
+    for i = 0; i < max_len; i = i + 1 {
+      result.write_char(chars[i])
+    }
+    result.write_string("...")
+    result.to_string()
+  }
+}
 
 // =============================================================================
 // Router Configuration
@@ -870,28 +875,13 @@ pub fn config() -> @router.RouterConfig {
 let create_post_action : @action.ActionHandler = @action.ActionHandler(async fn(
   ctx,
 ) {
-  // Parse request body (JSON or form-urlencoded)
+  // Parse request body using DRY helper
   let content_type = ctx.get_header("Content-Type").unwrap_or("")
-  let is_form = content_type.contains("application/x-www-form-urlencoded")
-
-  let body = ctx.body
-  let (title, slug, content, status) = if is_form {
-    let data = parse_form_urlencoded(body)
-    (
-      get_str(data, "title"),
-      get_str(data, "slug"),
-      get_str(data, "content"),
-      get_str(data, "status"),
-    )
-  } else {
-    let data = parse_json(body)
-    (
-      get_str(data, "title"),
-      get_str(data, "slug"),
-      get_str(data, "content"),
-      get_str(data, "status"),
-    )
-  }
+  let data = parse_request_body(content_type, ctx.body)
+  let title = get_str(data, "title")
+  let slug = get_str(data, "slug")
+  let content = get_str(data, "content")
+  let status = get_str(data, "status")
 
   // Validate
   if title == "" {
@@ -919,29 +909,14 @@ let create_post_action : @action.ActionHandler = @action.ActionHandler(async fn(
 let update_post_action : @action.ActionHandler = @action.ActionHandler(async fn(
   ctx,
 ) {
+  // Parse request body using DRY helper
   let content_type = ctx.get_header("Content-Type").unwrap_or("")
-  let is_form = content_type.contains("application/x-www-form-urlencoded")
-
-  let body = ctx.body
-  let (id, title, slug, content, status) = if is_form {
-    let data = parse_form_urlencoded(body)
-    (
-      get_str(data, "id"),
-      get_str(data, "title"),
-      get_str(data, "slug"),
-      get_str(data, "content"),
-      get_str(data, "status"),
-    )
-  } else {
-    let data = parse_json(body)
-    (
-      get_str(data, "id"),
-      get_str(data, "title"),
-      get_str(data, "slug"),
-      get_str(data, "content"),
-      get_str(data, "status"),
-    )
-  }
+  let data = parse_request_body(content_type, ctx.body)
+  let id = get_str(data, "id")
+  let title = get_str(data, "title")
+  let slug = get_str(data, "slug")
+  let content = get_str(data, "content")
+  let status = get_str(data, "status")
 
   if id == "" {
     return @action.ActionResult::bad_request("IDは必須です")
@@ -964,21 +939,110 @@ let update_post_action : @action.ActionHandler = @action.ActionHandler(async fn(
   )
 })
 
-///| Create JSON response for action
-extern "js" fn action_json_response(
+///| Create JSON response for action - MoonBit native (consolidated from api_json_success)
+fn action_json_response(
   success : Bool,
   message : String,
   slug : String,
-) -> @core.Any =
-  #| (success, message, slug) => ({ success, message, slug })
+) -> @core.Any {
+  @core.from_entries([
+    ("success", @core.any(success)),
+    ("message", @core.any(message)),
+    ("slug", @core.any(slug)),
+  ])
+}
 
-///| Parse JSON string
-extern "js" fn parse_json(s : String) -> @core.Any =
-  #| (s) => { try { return JSON.parse(s); } catch { return {}; } }
+///| Parse request body (JSON or form-urlencoded) - DRY helper
+fn parse_request_body(content_type : String, body : String) -> @core.Any {
+  let is_form = content_type.contains("application/x-www-form-urlencoded")
+  if is_form {
+    parse_form_urlencoded(body)
+  } else {
+    parse_json(body)
+  }
+}
 
-///| Parse form-urlencoded string
-extern "js" fn parse_form_urlencoded(s : String) -> @core.Any =
-  #| (s) => Object.fromEntries(new URLSearchParams(s))
+///| Parse JSON string - MoonBit native with error handling
+fn parse_json(s : String) -> @core.Any {
+  // Use try_sync to catch JS JSON.parse errors
+  try {
+    @core.try_sync(fn() { @core.json_parse(s) })
+  } catch {
+    @core.JsError(_) => @core.new_object()
+  }
+}
+
+///| Safely decode URI component with + to space conversion and error handling
+///| Uses JS FFI for exception-safe decoding
+extern "js" fn safe_decode_uri(s : String) -> String =
+  #| (s) => {
+  #|   try {
+  #|     // Replace + with space (form-urlencoded uses + for space)
+  #|     return decodeURIComponent(s.replace(/\+/g, ' '));
+  #|   } catch (e) {
+  #|     // Return original string on decode error (e.g., invalid % sequences)
+  #|     return s.replace(/\+/g, ' ');
+  #|   }
+  #| }
+
+///| Parse form-urlencoded string - MoonBit native (pure implementation)
+fn parse_form_urlencoded(s : String) -> @core.Any {
+  let result = @core.new_object()
+  if s == "" {
+    return result
+  }
+  // Split by '&' - pure MoonBit implementation
+  let pairs = split_by_char(s, '&')
+  for pair in pairs {
+    if pair == "" {
+      continue
+    }
+    // Find '=' position
+    let chars = pair.to_array()
+    let mut eq_idx = -1
+    for i, c in chars {
+      if c == '=' {
+        eq_idx = i
+        break
+      }
+    }
+    if eq_idx >= 0 {
+      let key = safe_decode_uri(extract_substring(chars, 0, eq_idx))
+      let value = safe_decode_uri(extract_substring(chars, eq_idx + 1, chars.length()))
+      result._set(key, @core.any(value))
+    } else {
+      // No '=' found, key with empty value
+      let key = safe_decode_uri(pair)
+      result._set(key, @core.any(""))
+    }
+  }
+  result
+}
+
+///| Split string by separator character - MoonBit native helper
+fn split_by_char(s : String, sep : Char) -> Array[String] {
+  let result : Array[String] = []
+  let current = StringBuilder::new()
+  for c in s {
+    if c == sep {
+      result.push(current.to_string())
+      current.reset()
+    } else {
+      current.write_char(c)
+    }
+  }
+  result.push(current.to_string())
+  result
+}
+
+///| Extract substring from char array - MoonBit native helper
+fn extract_substring(chars : Array[Char], start : Int, end : Int) -> String {
+  let result = StringBuilder::new()
+  for i = start; i < end && i < chars.length(); i = i + 1 {
+    result.write_char(chars[i])
+  }
+  result.to_string()
+}
 
 ///|
 /// Action registry with Server Actions for post CRUD

@@ -2,6 +2,256 @@
 
 MoonBitからJavaScriptを呼び出すFFI（Foreign Function Interface）のパターン。
 
+---
+
+## FFI削減ガイド（推奨）
+
+**原則**: MoonBitで実装できるものはMoonBitで書く。FFIは最小限に。
+
+### 削減実績
+
+| カテゴリ | 削減前 | 削減後 | 削減率 |
+|---------|--------|--------|--------|
+| データアクセス | 5 FFI | 0 FFI | 100% |
+| 文字列操作 | 2 FFI | 0 FFI | 100% |
+| JSON処理 | 2 FFI | 0 FFI | 100% |
+| フォーム処理 | 2 FFI | 0 FFI | 100% |
+| フレームワーク連携 | 2 FFI | 0 FFI | 100% |
+| クライアントヘルパー | 3 FFI | 0 FFI | 100% |
+| **合計** | **26 FFI** | **10 FFI** | **62%** |
+
+### 削減パターン
+
+#### 1. データアクセスヘルパー → `@core.Any` API
+
+```moonbit
+// ❌ Before: FFI
+extern "js" fn get_str(obj, field) -> String = #| (obj, field) => obj?.[field] ?? ""
+
+// ✅ After: MoonBit native
+pub fn get_str(obj : @core.Any, field : String) -> String {
+  if @core.is_nullish(obj) { return "" }
+  let val = obj._get(field)
+  if @core.is_nullish(val) { "" } else { val.to_string() }
+}
+
+// ❌ Before: FFI
+extern "js" fn get_int(obj, field) -> Int = #| (obj, field) => Number(obj?.[field]) || 0
+
+// ✅ After: MoonBit native
+pub fn get_int(obj : @core.Any, field : String) -> Int {
+  if @core.is_nullish(obj) { return 0 }
+  let val = obj._get(field)
+  if @core.is_nullish(val) { 0 } else { val.cast() }
+}
+
+// ❌ Before: FFI
+extern "js" fn is_null(obj) -> Bool = #| (obj) => obj == null
+
+// ✅ After: MoonBit native
+pub fn is_null(obj : @core.Any) -> Bool {
+  @core.is_nullish(obj)
+}
+
+// ❌ Before: FFI
+extern "js" fn array_len(arr) -> Int = #| (arr) => arr?.length || 0
+
+// ✅ After: MoonBit native
+pub fn array_len(arr : @core.Any) -> Int {
+  if @core.is_nullish(arr) { 0 }
+  else { arr._get("length").cast() }
+}
+
+// ❌ Before: FFI
+extern "js" fn array_get(arr, idx) -> @core.Any = #| (arr, idx) => arr[idx]
+
+// ✅ After: MoonBit native
+pub fn array_get(arr : @core.Any, idx : Int) -> @core.Any {
+  arr._get_by_index(idx)
+}
+```
+
+#### 2. 文字列操作 → MoonBit String API
+
+```moonbit
+// ❌ Before: FFI
+extern "js" fn normalize_newlines(s) -> String = #| (s) => s.replace(/\\n/g, '\n')
+
+// ✅ After: MoonBit native
+fn normalize_newlines(s : String) -> String {
+  let result = StringBuilder::new()
+  let chars = s.to_array()
+  let len = chars.length()
+  let mut i = 0
+  while i < len {
+    if i + 1 < len && chars[i] == '\\' && chars[i + 1] == 'n' {
+      result.write_char('\n')
+      i = i + 2
+    } else {
+      result.write_char(chars[i])
+      i = i + 1
+    }
+  }
+  result.to_string()
+}
+
+// ❌ Before: FFI
+extern "js" fn safe_excerpt(content, maxLen) -> String = #| ...
+
+// ✅ After: MoonBit native
+fn safe_excerpt(content : String, max_len : Int) -> String {
+  let chars = content.to_array()
+  if chars.length() <= max_len { content }
+  else {
+    let result = StringBuilder::new()
+    for i = 0; i < max_len; i = i + 1 { result.write_char(chars[i]) }
+    result.write_string("...")
+    result.to_string()
+  }
+}
+
+// ❌ Before: FFI (slug生成)
+extern "js" fn generate_slug(title) -> String = #| (title) => title.toLowerCase()...
+
+// ✅ After: MoonBit native
+fn generate_slug(title : String) -> String {
+  let result = StringBuilder::new()
+  let mut prev_hyphen = true
+  for c in title {
+    let lower = if c >= 'A' && c <= 'Z' {
+      (c.to_int() + 32).unsafe_to_char()
+    } else { c }
+    let is_alnum = (lower >= 'a' && lower <= 'z') || (lower >= '0' && lower <= '9')
+    if is_alnum {
+      result.write_char(lower)
+      prev_hyphen = false
+    } else if not(prev_hyphen) {
+      result.write_char('-')
+      prev_hyphen = true
+    }
+  }
+  // Trim trailing hyphen...
+  result.to_string()
+}
+```
+
+#### 3. JSON処理 → `@core` API
+
+```moonbit
+// ❌ Before: FFI
+extern "js" fn api_json_success(msg, slug) -> @core.Any = #| (msg, slug) => ({ success: true, message: msg, slug })
+
+// ✅ After: MoonBit native
+fn action_json_response(success : Bool, message : String, slug : String) -> @core.Any {
+  @core.from_entries([
+    ("success", @core.any(success)),
+    ("message", @core.any(message)),
+    ("slug", @core.any(slug)),
+  ])
+}
+
+// ❌ Before: FFI
+extern "js" fn parse_json(s) -> @core.Any = #| (s) => JSON.parse(s)
+
+// ✅ After: MoonBit native with error handling
+fn parse_json(s : String) -> @core.Any {
+  try { @core.try_sync(fn() { @core.json_parse(s) }) }
+  catch { @core.JsError(_) => @core.new_object() }
+}
+```
+
+#### 4. フォーム処理 → Pure MoonBit
+
+```moonbit
+// ❌ Before: FFI
+extern "js" fn parse_form_urlencoded(s) -> @core.Any = #| (s) => ...
+
+// ✅ After: MoonBit native (ヘルパー関数と組み合わせ)
+fn parse_form_urlencoded(s : String) -> @core.Any {
+  let result = @core.new_object()
+  if s == "" { return result }
+  let pairs = split_by_char(s, '&')
+  for pair in pairs {
+    if pair == "" { continue }
+    // key=value を分解
+    let chars = pair.to_array()
+    let mut eq_idx = -1
+    for i, c in chars {
+      if c == '=' { eq_idx = i; break }
+    }
+    if eq_idx >= 0 {
+      let key = safe_decode_uri(extract_substring(chars, 0, eq_idx))
+      let value = safe_decode_uri(extract_substring(chars, eq_idx + 1, chars.length()))
+      result._set(key, @core.any(value))
+    }
+  }
+  result
+}
+
+// ヘルパー: 文字で分割
+fn split_by_char(s : String, sep : Char) -> Array[String] { ... }
+
+// ヘルパー: 部分文字列抽出
+fn extract_substring(chars : Array[Char], start : Int, end : Int) -> String { ... }
+```
+
+#### 5. フレームワーク連携 → Sol Framework API
+
+```moonbit
+// ❌ Before: FFI
+extern "js" fn get_form_body_promise(props) -> @core.Promise[@core.Any] = #| async (props) => await props.ctx.req.parseBody()
+
+// ✅ After: Sol Framework native API
+async fn api_handler(props : @router.PageProps) -> @core.Any {
+  let body = props.ctx.req.parseBody()  // 直接呼び出し可能
+  // ...
+}
+
+// ❌ Before: FFI
+extern "js" fn hono_redirect(props, url) -> @core.Any = #| (props, url) => new Response(null, { status: 302, headers: { Location: url } })
+
+// ✅ After: Sol Framework native API
+async fn api_delete(props : @router.PageProps) -> @core.Any {
+  @core.any(props.ctx.redirect("/admin"))  // 直接呼び出し可能
+}
+```
+
+#### 6. クライアントヘルパー → `@js.Any` API
+
+```moonbit
+// ❌ Before: FFI
+extern "js" fn get_message(data) -> String = #| (data) => data?.message || "成功"
+
+// ✅ After: MoonBit native (クライアント側は @js を使用)
+fn get_message(data : @js.Any) -> String {
+  let val = data._get("message")
+  if @js.is_nullish(val) { "成功" } else { val.to_string() }
+}
+
+// ❌ Before: FFI
+extern "js" fn get_slug(data) -> String = #| (data) => data?.slug || ""
+
+// ✅ After: MoonBit native
+fn get_slug(data : @js.Any) -> String {
+  let val = data._get("slug")
+  if @js.is_nullish(val) { "" } else { val.to_string() }
+}
+```
+
+### 削減不可能なFFI（必須）
+
+以下はブラウザ/ランタイムAPIの制約により残す必要がある：
+
+| FFI | 理由 |
+|-----|------|
+| `db_*` (7件) | Cloudflare D1 SQL操作 - JSバインディング必須 |
+| `get_timestamp()` | Date API - JSのみ |
+| `redirect_to(url)` | `window.location.href` - DOM API |
+| `get_form_data_from_form()` | FormData API - DOM API |
+| `safe_decode_uri()` | `decodeURIComponent()` - 例外処理含むためFFI推奨 |
+
+---
+
 ## 基本構文
 
 ```moonbit

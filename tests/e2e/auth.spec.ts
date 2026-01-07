@@ -37,7 +37,7 @@ test.describe('Public Routes (No Auth Required)', () => {
       expect(response?.status()).toBe(200);
 
       // Verify post page structure
-      await expect(page.locator('.post-content, article, .content')).toBeVisible();
+      await expect(page.locator('.post-content, article, .content').first()).toBeVisible();
     } else {
       // No posts exist yet - just verify the homepage loaded
       test.info().annotations.push({ type: 'skip-reason', description: 'No published posts available' });
@@ -84,11 +84,12 @@ test.describe('Protected Routes (Auth Required)', () => {
       expect(response?.status()).toBe(200);
 
       // Verify admin dashboard content
-      // h1 is "Manage Posts", h3 is "Admin" in sidebar
+      // h1 is "記事管理" (Manage Posts in Japanese)
       const h1 = page.locator('h1');
       await expect(h1).toBeVisible();
-      const h1Text = await h1.textContent();
-      expect(h1Text?.toLowerCase()).toContain('post');
+      const h1Text = await h1.textContent() || '';
+      // Accept both English and Japanese
+      expect(h1Text.toLowerCase().includes('post') || h1Text.includes('記事')).toBe(true);
     });
 
     test('admin new post page is accessible with valid credentials', async ({ page }) => {

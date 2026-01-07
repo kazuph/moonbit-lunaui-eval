@@ -100,6 +100,44 @@ pub fn markdown_editor(props : MarkdownEditorProps) -> DomNode {
     content.set(target.value)
   }
 
+  // Delete handler (only for existing posts)
+  let is_deleting = @signal.signal(false)
+  let handle_delete : @element.MouseHandler = fn(_e) {
+    // Confirm before deleting
+    if not(confirm_delete("本当にこの記事を削除しますか？")) {
+      return
+    }
+    is_deleting.set(true)
+    result_msg.set("削除中...")
+    is_error.set(false)
+
+    // Delete API call
+    let delete_url = "/api/posts/" + props.post_id + "/delete"
+    let handle_delete_response : (@action.ActionResponse) -> Unit = fn(response) {
+      match response {
+        @action.ActionResponse::Success(_) => {
+          // Redirect to admin on success
+          redirect_to("/admin")
+        }
+        @action.ActionResponse::Error(_, error_msg) => {
+          is_deleting.set(false)
+          is_error.set(true)
+          result_msg.set("削除エラー: " + error_msg)
+        }
+        @action.ActionResponse::NetworkError(error_msg) => {
+          is_deleting.set(false)
+          is_error.set(true)
+          result_msg.set("ネットワークエラー: " + error_msg)
+        }
+        @action.ActionResponse::Redirect(url) => {
+          redirect_to(url)
+        }
+      }
+    }
+    // Use empty object for delete (no form data needed)
+    @action.invoke_action(delete_url, @js.from_entries([]), handle_delete_response)
+  }
+
   div(class="markdown-editor-island", [
     // Result message display
     div(
@@ -245,6 +283,20 @@ pub fn markdown_editor(props : MarkdownEditorProps) -> DomNode {
         ]),
       ],
     ),
+    // Delete button (only for existing posts)
+    @element.show(
+      fn() { props.post_id != "" },
+      fn() {
+        div(class="delete-section", style="margin-top: 20px;", [
+          button(
+            class="btn btn-danger",
+            on=events().click(handle_delete),
+            dyn_attrs=[("disabled", @element.AttrValue::Dynamic(fn() { if is_deleting.get() { "true" } else { "__remove__" } }))],
+            [text(if is_deleting.get() { "削除中..." } else { "記事を削除" })],
+          ),
+        ])
+      },
+    ),
   ])
 }
 
@@ -260,18 +312,67 @@ extern "js" fn get_form_data_from_form(e : @js_dom.FormEvent, post_id : String) 
   #|   return data;
   #| }
 
-///| Get message from response data
-extern "js" fn get_message(data : @js.Any) -> String =
-  #| (data) => data?.message || "成功"
+///| Get message from response data - MoonBit native
+fn get_message(data : @js.Any) -> String {
+  let val = data._get("message")
+  if @js.is_nullish(val) {
+    "成功"
+  } else {
+    val.to_string()
+  }
+}
 
-///| Get slug from response data
-extern "js" fn get_slug(data : @js.Any) -> String =
-  #| (data) => data?.slug || ""
+///| Get slug from response data - MoonBit native
+fn get_slug(data : @js.Any) -> String {
+  let val = data._get("slug")
+  if @js.is_nullish(val) {
+    ""
+  } else {
+    val.to_string()
+  }
+}
 
-///| Redirect to URL
+///| Redirect to URL (DOM API - must remain FFI)
 extern "js" fn redirect_to(url : String) -> Unit =
   #| (url) => { window.location.href = url; }
 
-///| Generate slug from title (lowercase, replace spaces with hyphens)
-extern "js" fn generate_slug(title : String) -> String =
-  #| (title) => title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+///| Confirm dialog (DOM API - must remain FFI)
+extern "js" fn confirm_delete(message : String) -> Bool =
+  #| (message) => window.confirm(message)
+
+///| Generate slug from title - MoonBit native
+///| Converts to lowercase and replaces non-alphanumeric chars with hyphens
+fn generate_slug(title : String) -> String {
+  let result = StringBuilder::new()
+  let mut prev_hyphen = true // Prevent leading hyphen
+  for c in title {
+    // Convert to lowercase and check if alphanumeric
+    let lower = if c >= 'A' && c <= 'Z' {
+      (c.to_int() + 32).unsafe_to_char() // ASCII lowercase
+    } else {
+      c
+    }
+    let is_alpha = lower >= 'a' && lower <= 'z'
+    let is_num = lower >= '0' && lower <= '9'
+    if is_alpha || is_num {
+      result.write_char(lower)
+      prev_hyphen = false
+    } else if not(prev_hyphen) {
+      result.write_char('-')
+      prev_hyphen = true
+    }
+  }
+  // Remove trailing hyphen
+  let s = result.to_string()
+  let chars = s.to_array()
+  let len = chars.length()
+  if len > 0 && chars[len - 1] == '-' {
+    let trimmed = StringBuilder::new()
+    for i = 0; i < len - 1; i = i + 1 {
+      trimmed.write_char(chars[i])
+    }
+    trimmed.to_string()
+  } else {
+    s
+  }
+}

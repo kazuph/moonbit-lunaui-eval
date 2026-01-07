@@ -102,16 +102,89 @@ tests/e2e/           # E2Eテスト（Playwright）
 - **クライアント**: `get_message`, `get_slug`, `generate_slug`
 - **フレームワーク連携**: `parseBody()`, `redirect()` (Sol Framework API使用)
 
-### 残存FFI（6件）
+### 残存FFI（6件）詳細
 
-| FFI | 場所 | 理由 |
-|-----|------|------|
-| `get_global_db` | server | D1バインディング取得（1件に削減） |
-| `get_timestamp` | server | JavaScript Date API |
-| `safe_decode_uri` | server | decodeURIComponent例外処理 |
-| `redirect_to` | client | DOM window.location API |
-| `confirm_delete` | client | DOM window.confirm API |
-| `get_form_data_from_form` | client | DOM FormData API |
+これらのFFIはブラウザ/ランタイムAPIの制約により、MoonBitでの実装が不可能または非推奨。
+
+#### 1. `get_global_db` (server)
+
+**目的**: Cloudflare D1データベースバインディングの取得
+
+```moonbit
+extern "js" fn get_global_db() -> @core.Any =
+  #| () => {
+  #|   const db = globalThis.__D1_DB;
+  #|   if (!db) throw new Error('D1 database not initialized');
+  #|   return db;
+  #| }
+```
+
+**なぜFFIが必要か**: Cloudflare Workers の D1 バインディングは `env.DB` から取得する必要がある。Sol Framework の PageProps からは直接 env にアクセスできないため、worker.ts で `globalThis.__D1_DB = env.DB` を設定し、MoonBit側で取得する。取得後は `mizchi/cloudflare` パッケージの型安全なAPIを使用。
+
+#### 2. `get_timestamp` (server)
+
+**目的**: ISO 8601形式の現在時刻を取得
+
+```moonbit
+extern "js" fn get_timestamp() -> String =
+  #| () => new Date().toISOString()
+```
+
+**なぜFFIが必要か**: MoonBitには標準の日時ライブラリがなく、JavaScript の `Date` APIに依存。Cloudflare Workers環境では `new Date()` が唯一の時刻取得手段。
+
+#### 3. `safe_decode_uri` (server)
+
+**目的**: URLエンコードされた文字列のデコード（エラーハンドリング付き）
+
+```moonbit
+extern "js" fn safe_decode_uri(s : String) -> String =
+  #| (s) => {
+  #|   try { return decodeURIComponent(s); }
+  #|   catch (e) { return s; }
+  #| }
+```
+
+**なぜFFIが必要か**: `decodeURIComponent` は不正なエンコーディングで例外を投げる。MoonBitの `@core.try_sync` では戻り値型の制約があり、JavaScript側で例外処理する方が安全。
+
+#### 4. `redirect_to` (client)
+
+**目的**: クライアント側でのページ遷移
+
+```moonbit
+extern "js" fn redirect_to(url : String) -> Unit =
+  #| (url) => { window.location.href = url; }
+```
+
+**なぜFFIが必要か**: `window.location` はブラウザDOM APIであり、MoonBitから直接アクセスできない。Island Component内での画面遷移に使用。
+
+#### 5. `confirm_delete` (client)
+
+**目的**: 削除確認ダイアログの表示
+
+```moonbit
+extern "js" fn confirm_delete() -> Bool =
+  #| () => window.confirm("この記事を削除しますか？")
+```
+
+**なぜFFIが必要か**: `window.confirm` はブラウザのネイティブダイアログAPIであり、MoonBitから直接呼び出せない。ユーザー確認が必要な破壊的操作で使用。
+
+#### 6. `get_form_data_from_form` (client)
+
+**目的**: フォーム要素からFormDataオブジェクトを取得
+
+```moonbit
+extern "js" fn get_form_data_from_form(e : @js_dom.FormEvent, post_id : String) -> @js.Any =
+  #| (e, postId) => {
+  #|   const form = e.target;
+  #|   const formData = new FormData(form);
+  #|   const data = {};
+  #|   formData.forEach((value, key) => { data[key] = value; });
+  #|   if (postId) { data.id = postId; }
+  #|   return data;
+  #| }
+```
+
+**なぜFFIが必要か**: `FormData` APIはブラウザDOM APIであり、フォーム要素からのデータ抽出にはJavaScriptが必要。Server Actionsへのデータ送信で使用。
 
 > ✅ **D1アクセス最適化**: `mizchi/cloudflare`パッケージの`D1Database`/`D1PreparedStatement`型を使用し、SQL操作を型安全に実行
 

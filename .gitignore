@@ -4,7 +4,7 @@ node_modules/
 
 # Build outputs
 dist/
-target/
+target
 .sol/
 app/__gen__/
 
@@ -35,6 +35,7 @@ test-results/
 
 # MoonBit
 .mooncakes/
+_build/
 
 # Logs
 *.log
